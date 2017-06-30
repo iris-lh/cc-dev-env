@@ -1,0 +1,4 @@
+luarocks/
+node_modules/
+build/
+pastebin-user.json
