@@ -2,6 +2,7 @@ const jetpack     = require('fs-jetpack')
 const projectRoot = jetpack.cwd()
 const _           = require('lodash')
 const config      = require(`${projectRoot}/lua-config.json`)
+const moonc       = require('./moonc')
 
 const srcPath = `${projectRoot}/src/`
 
@@ -102,6 +103,10 @@ function luaBundle() {
   const luas = pipe(
     srcPath,
     loadLuas
+    // buildDependencyTree
+    // buildOrder
+    // cleanupLuas
+    // writeBundle
   )
   const tree = buildDependencyTree(luas)
   const buildOrder = resolve(tree)
