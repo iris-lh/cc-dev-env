@@ -3,12 +3,18 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "moonc": "node ./bin/moonc.js",
     "build": "node ./bin/lua-bundle.js",
-    "start": "yarn build; lua ./build/bundle-test.lua"
+    "deploy": "yarn build; yarn paste",
+    "start": "yarn build; lua ./build/bundle-test.lua",
+    "paste": "node ./bin/pastebin.js update",
+    "copy": "node ./bin/pastebin.js copy"
   },
   "license": "MIT",
   "dependencies": {
     "better-pastebin": "^0.3.1",
+    "clipboardy": "^1.1.4",
+    "execa": "^0.7.0",
     "fs-jetpack": "^1.1.0",
     "lodash": "^4.17.4",
     "pastebin-js": "^0.4.0"
