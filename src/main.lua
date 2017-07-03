@@ -1,6 +1,6 @@
-foo = require 'foo'
-baz = require 'baz'
-asdf = require('asdf')
+foo = require './foo.lua'
+baz = require './baz.lua'
+asdf = require('./asdf.moon')
 
 print('hello world')
 foo()

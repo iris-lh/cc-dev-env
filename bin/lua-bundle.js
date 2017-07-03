@@ -12,23 +12,36 @@ function moonc(moon) {
 }
 
 
+function tokenize(path) {
+  return path.replace(/\.[a-z]*/, '')
+}
+
+function trimExtension(path) {
+  return path.replace(/\..*/, '')
+}
+
+
 function loadLuas(srcPath) {
-  const fileNames = jetpack.list(srcPath)
+  const paths = jetpack.find(srcPath, {
+    matching: ['./**/*.lua', './**/*.moon']
+  }).map(path => {
+    
+    return path.replace(/.*?\//, '')
+  })
   var luas = {}
 
-  for (var i = 0; i < fileNames.length; i++) {
-    const fileName = fileNames[i]
-    const fileToken = fileName.replace(/\.[a-z]*/, '')
-    const isMoon = fileName.includes('.moon')
-    const fileContents = isMoon 
-      ? moonc(jetpack.read(`${srcPath}/${fileNames[i]}`))
-      : jetpack.read(`${srcPath}/${fileNames[i]}`)
-    luas[fileToken] = {
-      name: fileToken,
-      lines: fileContents.split('\n')
+  for (var i = 0; i < paths.length; i++) {
+    const path = paths[i]
+    const token = tokenize(path)
+    const isMoon = path.includes('.moon')
+    const contents = isMoon 
+      ? moonc(jetpack.read(`${srcPath}/${path}`))
+      : jetpack.read(`${srcPath}/${path}`)
+    luas[token] = {
+      name: trimExtension(path),
+      lines: contents.split('\n')
     }
   }
-
   return luas
 }
 
@@ -38,16 +51,22 @@ function buildDependencyTree(luas) {
   _.forOwn(luas, (lua, key) => {
     dependencyTree[lua.name] = {name: lua.name, dependencies: []}
     return lua.lines.forEach( line => {
-      const search = line.match(/['][a-z]*[']/)
-      if (search) {
-        const dependency = search[0].replace(/'/g, '')
+      // const search = line.match(/['][a-z]*[']/)
+      const requireLine = line.match(/= require/)
+      if (requireLine) {
+        const dependency = line
+          .match(/('|")(.*)('|")/)[0]
+          .replace(/\.\//g, '')
+          .replace(/'|"/g, '')
         if (!dependencyTree[lua.name]) {
           dependencyTree[lua.name] = {name: lua.name, dependencies: []}
         }
-        return dependencyTree[lua.name].dependencies.push(dependency)
+        return dependencyTree[lua.name].dependencies.push(trimExtension(dependency))
       }
     })})
-  const entrypointToken = config.entrypoint.match(/([a-z]+(?=\.))/)[0]
+  const entrypointToken = tokenize(config.entrypoint)
+    .replace(new RegExp('\..*\/', 'g'), '')
+    .replace(/\..*/, '')
   dependencyTree.entrypoint = entrypointToken
   return dependencyTree
 }
@@ -80,7 +99,7 @@ function assembleLuas(luas, order) {
     return (
       !line.match('require') &&
       !(line === '') &&
-      !line.match(new RegExp(('return\\s*' + lua.name), 'i'))
+      !line.match(new RegExp(('return\\s*' + lua.name.replace(new RegExp('.*\/', 'g'), '')), 'i'))
     )
   }
 

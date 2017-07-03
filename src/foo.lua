@@ -1,4 +1,4 @@
-local bar = require('bar')
+local bar = require('./bar.lua')
 
 local function foo()
   print('this is foo')

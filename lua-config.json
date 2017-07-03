@@ -4,5 +4,5 @@
   "pastebinUrl": "https://pastebin.com/TZwqLUaP",
   "watchPaths": ["./src"],
   "entrypoint": "./src/main.lua",
-  "outputPath": "./build/main.bundle.lua"
+  "outputPath": "./build/bundle-test.lua"
 }
