@@ -2,6 +2,7 @@
   "name": "bundle-test",
   "luaVersion": "5.2.4",
   "pastebinUrl": "https://pastebin.com/TZwqLUaP",
+  "watchPaths": ["./src"],
   "entrypoint": "./src/main.lua",
   "outputPath": "./build/main.bundle.lua"
 }
