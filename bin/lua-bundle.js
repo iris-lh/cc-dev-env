@@ -25,16 +25,16 @@ function loadLuas(srcPath) {
   const paths = jetpack.find(srcPath, {
     matching: ['./**/*.lua', './**/*.moon']
   }).map(path => {
-    
     return path.replace(/.*?\//, '')
   })
+
   var luas = {}
 
   for (var i = 0; i < paths.length; i++) {
     const path = paths[i]
     const token = tokenize(path)
     const isMoon = path.includes('.moon')
-    const contents = isMoon 
+    const contents = isMoon
       ? moonc(jetpack.read(`${srcPath}/${path}`))
       : jetpack.read(`${srcPath}/${path}`)
     luas[token] = {
@@ -42,33 +42,34 @@ function loadLuas(srcPath) {
       lines: contents.split('\n')
     }
   }
+
   return luas
 }
 
 
-function buildDependencyTree(luas) {
-  var dependencyTree = {}
+function buildTree(luas) {
+  var tree = {}
   _.forOwn(luas, (lua, key) => {
-    dependencyTree[lua.name] = {name: lua.name, dependencies: []}
+    tree[lua.name] = {name: lua.name, dependencies: []}
+    const path = lua.name.replace(/(?!\/)([a-z]*)$/i, '')
     return lua.lines.forEach( line => {
-      // const search = line.match(/['][a-z]*[']/)
       const requireLine = line.match(/= require/)
       if (requireLine) {
-        const dependency = line
-          .match(/('|")(.*)('|")/)[0]
-          .replace(/\.\//g, '')
-          .replace(/'|"/g, '')
-        if (!dependencyTree[lua.name]) {
-          dependencyTree[lua.name] = {name: lua.name, dependencies: []}
+        const dependency = path + line
+          .match(/('|")(.*)('|")/)[0] // isolate path
+          .replace(/\.\//g, '') // trim './' from beginning
+          .replace(/'|"/g, '') // remove quotes
+        if (!tree[lua.name]) {
+          tree[lua.name] = {name: lua.name, dependencies: []}
         }
-        return dependencyTree[lua.name].dependencies.push(trimExtension(dependency))
+        return tree[lua.name].dependencies.push(trimExtension(dependency))
       }
     })})
   const entrypointToken = tokenize(config.entrypoint)
     .replace(new RegExp('\..*\/', 'g'), '')
     .replace(/\..*/, '')
-  dependencyTree.entrypoint = entrypointToken
-  return dependencyTree
+  tree.entrypoint = entrypointToken
+  return tree
 }
 
 
@@ -129,7 +130,7 @@ function writeBundle(bundle) {
 function luaBundle() {
   console.log(`bundling lua...`)
   const luas   = loadLuas(srcPath)
-  const tree   = buildDependencyTree(luas)
+  const tree   = buildTree(luas)
   const order  = resolve(tree)
   const bundle = assembleLuas(luas, order)
   writeBundle(bundle)
