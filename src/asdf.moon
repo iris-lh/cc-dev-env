@@ -1,1 +1,3 @@
 class Asdf
+
+return Asdf
