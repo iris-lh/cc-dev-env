@@ -1,32 +1,25 @@
 const jetpack     = require('fs-jetpack')
 const projectRoot = jetpack.cwd()
+const execa       = require('execa')
 const _           = require('lodash')
 const config      = require(`${projectRoot}/lua-config.json`)
-const moonc       = require('./moonc.js')
 
 const srcPath = `${projectRoot}/src/`
 
 
-const pipe = (arg, ...fns) => {
-  const _pipe = (f, g) => {
-    return (arg) => {
-      return g(f(arg))
-    }
-  }
-  return fns.reduce(_pipe)(arg)
+function moonc(moon) {
+  return execa.shellSync(`echo "${moon}" | moonc --`).stdout
 }
 
 
 function loadLuas(srcPath) {
   const fileNames = jetpack.list(srcPath)
-  console.log(fileNames)
   var luas = {}
 
   for (var i = 0; i < fileNames.length; i++) {
     const fileName = fileNames[i]
     const fileToken = fileName.replace(/\.[a-z]*/, '')
     const isMoon = fileName.includes('.moon')
-    console.log(fileToken, isMoon)
     const fileContents = isMoon 
       ? moonc(jetpack.read(`${srcPath}/${fileNames[i]}`))
       : jetpack.read(`${srcPath}/${fileNames[i]}`)
@@ -35,8 +28,6 @@ function loadLuas(srcPath) {
       lines: fileContents.split('\n')
     }
   }
-
-  console.log(luas)
 
   return luas
 }
@@ -84,24 +75,32 @@ function resolve(tree, module, resolved = [], unresolved = []) {
 }
 
 
-function cleanupLua(lua) {
-  function requirementsMet(line) {
+function assembleLuas(luas, order) {
+  function requirementsMet(line, lua) {
     return (
       !line.match('require') &&
       !(line === '') &&
-      !line.match(new RegExp('return\\s*' + lua.name))
+      !line.match(new RegExp(('return\\s*' + lua.name), 'i'))
     )
   }
-  var cleanLua = []
 
-  lua.lines.forEach(line => {
-    if (requirementsMet(line)) {
-      cleanLua.push(line)
-    }
-  })
+  var cleanLuas = []
 
-  return cleanLua.join('\n')
+  for (var i = 0; i < order.length; i++) {
+    var cleanLua = []
+    const lua = luas[order[i]]
+
+    lua.lines.forEach(line => {
+      if (requirementsMet(line, lua)) {
+        cleanLua.push(line)
+      }
+    })
+
+    cleanLuas.push(cleanLua.join('\n'))
+  }
+  return cleanLuas.join('\n\n')
 }
+
 
 function writeBundle(bundle) {
   jetpack.write(`${projectRoot}/build/${config.name}.lua`, bundle)
@@ -109,24 +108,17 @@ function writeBundle(bundle) {
 
 
 function luaBundle() {
-  const luas = pipe(
-    srcPath,
-    loadLuas
-    // buildDependencyTree
-    // buildOrder
-    // cleanupLuas
-    // writeBundle
-  )
-  const tree = buildDependencyTree(luas)
-  const buildOrder = resolve(tree)
-  const cleanLuas = []
-  for (var i = 0; i < buildOrder.length; i++) {
-    const lua = luas[buildOrder[i]]
-    cleanLuas.push(cleanupLua(lua))
-  }
-  const bundle = cleanLuas.join('\n\n')
+  console.log(`bundling lua...`)
+  const luas   = loadLuas(srcPath)
+  const tree   = buildDependencyTree(luas)
+  const order  = resolve(tree)
+  const bundle = assembleLuas(luas, order)
   writeBundle(bundle)
+  console.log('done.')
 }
 
+if (process.argv[2] === 'cli') {
+  luaBundle()
+}
 
-luaBundle()
+module.exports = luaBundle
