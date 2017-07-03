@@ -2,7 +2,7 @@ const jetpack     = require('fs-jetpack')
 const projectRoot = jetpack.cwd()
 const _           = require('lodash')
 const config      = require(`${projectRoot}/lua-config.json`)
-const moonc       = require('./moonc')
+const moonc       = require('./moonc.js')
 
 const srcPath = `${projectRoot}/src/`
 
@@ -19,15 +19,24 @@ const pipe = (arg, ...fns) => {
 
 function loadLuas(srcPath) {
   const fileNames = jetpack.list(srcPath)
+  console.log(fileNames)
   var luas = {}
 
   for (var i = 0; i < fileNames.length; i++) {
-    const name = fileNames[i].slice(0, fileNames[i].length - 4)
-    luas[name] = {
-      name: name,
-      lines: jetpack.read(`${srcPath}/${fileNames[i]}`).split('\n')
+    const fileName = fileNames[i]
+    const fileToken = fileName.replace(/\.[a-z]*/, '')
+    const isMoon = fileName.includes('.moon')
+    console.log(fileToken, isMoon)
+    const fileContents = isMoon 
+      ? moonc(jetpack.read(`${srcPath}/${fileNames[i]}`))
+      : jetpack.read(`${srcPath}/${fileNames[i]}`)
+    luas[fileToken] = {
+      name: fileToken,
+      lines: fileContents.split('\n')
     }
   }
+
+  console.log(luas)
 
   return luas
 }
