@@ -1,7 +1,8 @@
 foo = require './foo.lua'
 baz = require './baz.lua'
-asdf = require('./asdf.moon')
+Shallow = require('./shallow.moon')
 
 print('hello world')
 foo()
 baz()
+Shallow.speak()
